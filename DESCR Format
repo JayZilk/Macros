@@ -1,0 +1,102 @@
+Sub descr1Format()
+'---- WHAT IT DOES (6/7/19)----------- JZ
+'Make a new column for DESCR1
+'find and remove bad characters
+'add new col & run formula & test for length (highlight cells that are too long)
+'------------------------------------------------------------------------------------
+
+'set variables
+Dim iRow As Integer
+Dim iCol As Integer
+Dim selectCell As Integer
+Dim maxRowNum As Integer
+Dim maxColNum As Integer
+
+'assignments
+maxRowNum = ActiveWorkbook.ActiveSheet.UsedRange.SpecialCells(xlCellTypeLastCell).row
+maxColNum = ActiveWorkbook.ActiveSheet.UsedRange.SpecialCells(xlCellTypeLastCell).Column
+selectCell = Application.ActiveCell.Column
+
+Application.ScreenUpdating = False
+
+'Format Description
+'remove (')
+Columns(selectCell).Select
+    Selection.Replace What:="'", Replacement:="", LookAt:=xlPart, _
+        SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
+        ReplaceFormat:=False
+'remove (")
+Columns(selectCell).Select
+    Selection.Replace What:="""", Replacement:="", LookAt:=xlPart, _
+        SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
+        ReplaceFormat:=False
+'remove (Bi-Color)
+Columns(selectCell).Select
+    Selection.Replace What:="Bi-Color", Replacement:="BIC", LookAt:=xlPart, _
+        SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
+        ReplaceFormat:=False
+'remove (TM)
+Columns(selectCell).Select
+    Selection.Replace What:=" TM", Replacement:="", LookAt:=xlPart, _
+        SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
+        ReplaceFormat:=False
+'remove ®
+Columns(selectCell).Select
+    Selection.Replace What:="®", Replacement:="", LookAt:=xlPart, _
+        SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
+        ReplaceFormat:=False
+'remove ™
+Columns(selectCell).Select
+    Selection.Replace What:="™", Replacement:="", LookAt:=xlPart, _
+        SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
+        ReplaceFormat:=False
+
+
+'...
+
+'Run formula on column
+Columns(selectCell + 1).Select
+Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+Cells(1, (selectCell + 1)).Value = "DESCR1"
+Cells(2, (selectCell + 1)).Select
+        
+ActiveCell.FormulaR1C1 = _
+    "=UPPER(TRIM(CONCATENATE(LEFT(IFERROR(LEFT(RC[-1],FIND("" "",RC[-1])-1),RC[-1]),6),"" "",IFERROR(MID(RC[-1],IFERROR(FIND("" "",RC[-1])+1,RC[-1]),LEN(RC[-1])),""""))))"
+
+Selection.AutoFill Destination:=Range("G2:G303")
+Range("G2:G303").Copy
+Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks:=False, Transpose:=False
+
+'Mark any cells over 30 characters to manually adjust
+Dim newCell As Integer
+Dim lengthCol As Integer
+Dim over30 As Boolean
+
+over30 = False
+newCell = selectCell + 1
+lengthCol = newCell + 1
+Columns(lengthCol).Select
+Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+Columns(lengthCol).ColumnWidth = 12
+
+For iRow = 2 To maxRowNum
+    varLength = Len(Cells(iRow, newCell))
+    'fieldIDs(iRow) = varLength
+    Cells(iRow, lengthCol).FormulaR1C1 = "=len(RC[-1])"
+    
+    If varLength > 30 Then
+        Cells(iRow, newCell).Interior.Color = 65535
+        Cells(iRow, lengthCol).Interior.Color = 65535
+        over30 = True
+    End If
+    
+Next iRow
+
+If over30 = False Then
+    'delete length column, nothing is too big
+     Columns(lengthCol).EntireColumn.Delete
+End If
+
+Application.ScreenUpdating = True
+
+End Sub
