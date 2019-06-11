@@ -1,0 +1,93 @@
+Sub formatDrops()
+'---- WHAT IT DOES (6/11/19)----------- JZ
+'Removes highlighted Columns from Import sheet(active sheet)
+'check/make sheet for DROPS, copy highlighted rows over
+'format rows on DROPS & delete from IMPORT
+'------------------------------------------------------------------------------------
+
+'set variables
+Dim iRow As Integer
+Dim iCol As Integer
+Dim iSheet As String
+Dim dropSheet As Integer
+Dim testVal As String
+Dim i As Integer
+Dim maxRowNum As Integer
+Dim maxColNum As Integer
+Dim wsImport As Integer
+
+
+'assignments
+maxRowNum = ActiveWorkbook.ActiveSheet.UsedRange.SpecialCells(xlCellTypeLastCell).row
+maxColNum = ActiveWorkbook.ActiveSheet.UsedRange.SpecialCells(xlCellTypeLastCell).Column
+wsImport = ActiveSheet.index 'Should be on IMPORT/template page
+
+'don't show changes as they go (for speed and cleaniness)
+Application.ScreenUpdating = False
+
+'
+'Check for exisiting DROPS sheet
+For i = 1 To Application.Sheets.Count
+   iSheet = Trim(UCase(Application.Sheets(i).name))
+   testVal = "DROP"
+   
+    If InStr(iSheet, testVal) > 0 Then
+        dropSheet = Application.Sheets.Count
+    End If
+Next i
+
+'If no DROP sheet is found = make one (wsDrop) and reset the dropSheet index
+If dropSheet = 0 Then
+    Set wsDrop = Sheets.Add(After:=Sheets(Application.Sheets.Count))
+    dropSheet = Sheets(Application.Sheets.Count).index
+    wsDrop.name = "DROPS"
+    wsDrop.Tab.Color = 49407
+    
+    'Copy Header to new sheet
+    Sheets(wsImport).Rows("1:1").Copy
+    Sheets(dropSheet).Rows("1:1").PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+End If
+
+'TEST ALL ROWS FOR HIGHLIGHTING TO REMOVE
+j = 2
+For i = maxRowNum To 2 Step -1
+    colorNum = Sheets(wsImport).Cells(i, 1).Interior.Color
+    'if cell 1 (whole row) is highlighted in *RED*
+    If colorNum = 255 Then
+        'copy row to DROPS
+        Sheets(wsImport).Rows(i).Copy
+        Sheets(dropSheet).Rows(j).PasteSpecial xlPasteValues
+        j = j + 1
+        
+        'delete row in Imports
+        Sheets(wsImport).Rows(i).EntireRow.Delete
+    End If
+Next i
+
+'Format dropSheet with Just 3 columns of data for ease of readilbilty
+Worksheets(dropSheet).Activate
+
+For i = maxColNum To 1 Step -1
+    'If InStr(UCase(Cells(1, i).Value), "PRODUCT") > 0 Or InStr(UCase(Cells(1, i).Value), "DESC") > 0 Or InStr(UCase(Cells(1, i).Value), "FORM") > 0 Then
+    If UCase(Cells(1, i).Value) = "PRODUCT NUMBER" Or UCase(Cells(1, i).Value) = "COMBINED DESCRIPTION" Or UCase(Cells(1, i).Value) = "PRODUCT FORM" Then
+        'do not delete. MATCHED NAME
+    Else
+        'EXTRA data. DELETE
+        Columns(i).EntireColumn.Delete
+    End If
+Next i
+
+'Highlight and Expand header cells
+Range("A1:C1").Select
+Columns("A:C").EntireColumn.AutoFit
+    With Selection.Interior
+        .Color = 65535
+    End With
+
+'
+'undue screen updating lock
+Application.ScreenUpdating = True
+
+
+End Sub
