@@ -8,3 +8,4 @@ Suggestions are welcome to any and all included files
 1. DESCR Format
 2. Format DROPS
 3. Single Column Pricing
+4. Baseline Array Check
