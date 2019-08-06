@@ -1,0 +1,80 @@
+Sub CheckBaseline(exWkb As Workbook, greenWbk As Workbook)
+' this routinue copies the export file data into an array as a baseline to check against with NEW programs. This
+' ensures that no items have been added, dropped, or changed without us knowing about it.
+' This array is copied into the EXPORT page on the Greensheet workbook.
+' ?V2 The array(s) are compared for changes
+' ?V2 - Any changes will be marked on a new 'CHANGES' sheet (item#, des1, des2, type of change)
+
+Dim baselineArray(), importArray(), ImpNewArray() As Variant
+Dim exportIndex, importIndex, maxRowNumEX, maxRowNumIM, maxColNumEX, maxColNumIM As Integer
+
+'IMPORT
+maxRowNumIM = Application.Workbooks(greenWbk.name).Sheets(1).UsedRange.SpecialCells(xlCellTypeLastCell).Row
+maxColNumIM = Application.Workbooks(greenWbk.name).Sheets(1).UsedRange.SpecialCells(xlCellTypeLastCell).Column
+
+'EXPORT
+maxRowNumEX = Application.Workbooks(exWkb.name).Sheets(1).UsedRange.SpecialCells(xlCellTypeLastCell).Row
+maxColNumEX = Application.Workbooks(exWkb.name).Sheets(1).UsedRange.SpecialCells(xlCellTypeLastCell).Column
+
+For r = 1 To maxRowNumEX
+    For c = 1 To maxColNumEX
+        baselineArray(r, c) = Trim(Workbooks(exWkb.name).Sheets(1).Cells(r, c).Value)
+    Next c
+Next r
+
+'create export tab in greensheet and add in array data
+Workbooks(exWkb).Close
+Workbooks(greenWbk).Sheets(1).Activate
+Sheets.Add Before:=ActiveSheet
+
+For r = 1 To maxRowNumEX
+    For c = 1 To maxColNumEX
+        Cells(r, c).Value = baselineArray(r, c)
+    Next c
+Next r
+
+'copy import data into array
+For r = 1 To maxRowNumIM
+    For c = 1 To maxColNumIM
+        importArray(r, c) = Trim(Workbooks(greenWkb.name).Sheets(1).Cells(r, c).Value)
+    Next c
+Next r
+
+'compare array for drops: check export Product numbers against all import rows
+i = 1
+For rEX = 1 To maxRowNumEX
+    For rIM = 1 To maxRowNumIM
+       If baselineArray(rEX, 6) = importArray(rIM, 1) Then
+        'match= good, do nothing
+       Else
+        'missing from import / add to droplist
+        dropArray(i, 1) = baselineArray(rEX, 3) 'vender #
+        dropArray(i, 2) = baselineArray(rEX, 6) 'Prelude #
+        dropArray(i, 3) = baselineArray(rEX, 11) 'Desc 1
+        dropArray(i, 4) = baselineArray(rEX, 12) 'Desc 2
+       End If
+    Next rIM
+Next rEX
+
+'NOT AS FOOL PROOF ***
+'compare array for adds: check import column data (vender # |OR| desc1 & 2) against all export rows in that column
+i = 1
+For rIM = 1 To maxRowNumIM
+    For rEX = 1 To maxRowNumEX
+        'test for data
+
+       If importArray(rIM, 6) = importArray(rIM, 1) Then
+        'match, do nothing
+       Else
+        'no match / add to droplist
+        dropArray(i, 1) = baselineArray(rEX, 3) 'vender #
+        dropArray(i, 2) = baselineArray(rEX, 6) 'Prelude #
+        dropArray(i, 3) = baselineArray(rEX, 11) 'Desc 1
+        dropArray(i, 4) = baselineArray(rEX, 12) 'Desc 2
+        i = i + 1
+       End If
+    Next rEX
+Next rIM
+
+
+End Sub
