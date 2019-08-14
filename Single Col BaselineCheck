@@ -1,0 +1,90 @@
+Sub singleChanges()
+'This subroutinue takes the selected cell and tests what it was in the export against what it is now. If there is a change
+'A 'WAS' column is created with the old value
+'If no changes are found a message will state that
+
+Application.ScreenUpdating = False
+Application.DisplayAlerts = False
+
+Set wb = ActiveWorkbook
+Dim shExport As Integer
+shExport = InputBox("Which tab number is the exported data on?")
+shData = ActiveSheet.index
+Dim exPNumCol, exSelectedCol, vendPNumCol, vendSelectedCol As Integer
+vendSelectedCol = ActiveCell.Column
+selectedHeader = Trim(wb.ActiveSheet.Cells(1, vendSelectedCol).Value)
+errorCheck = False
+
+maxColNumVend = wb.Sheets(shData).UsedRange.SpecialCells(xlCellTypeLastCell).Column
+maxRowNumVend = wb.Sheets(shData).UsedRange.SpecialCells(xlCellTypeLastCell).Row
+maxColNumEX = wb.Sheets(shExport).UsedRange.SpecialCells(xlCellTypeLastCell).Column
+maxRowNumEX = wb.Sheets(shExport).UsedRange.SpecialCells(xlCellTypeLastCell).Row
+
+'find other Columns
+For iCol = 1 To maxColNumVend
+    If Trim(UCase(wb.Sheets(shData).Cells(1, iCol).Value)) = "PRODUCT NUMBER" Then
+        vendPNumCol = iCol
+        iCol = maxColNumVend
+    End If
+Next iCol
+For iCol = 1 To maxColNumEX
+    If Trim(UCase(wb.Sheets(shData).Cells(1, iCol).Value)) = "PRODUCT NUMBER" Then
+        exPNumCol = iCol
+    End If
+    If Trim(UCase(wb.Sheets(shData).Cells(1, iCol).Value)) = UCase(selectedHeader) Then
+        exSelectedCol = iCol
+    End If
+    If exPNumCol <> "" And exSelectedCol <> "" Then
+        iCol = maxColNumEX
+    End If
+Next iCol
+
+'Error Messages
+If vendPNumCol = "" Then
+    strError = strError & "Could not find the 'Product Number' column in the current sheet" & vbNewLine
+    errorCheck = True
+End If
+If exPNumCol = "" Then
+    strError = strError & "Could not find the 'Product Number' column in the export sheet" & vbNewLine
+    errorCheck = True
+End If
+If exSelectedCol = "" Then
+    strError = strError & "Could not find the '" & selectedHeader & "' column in the export sheet" & vbNewLine
+    errorCheck = True
+End If
+
+If errorCheck = True Then
+    GoTo LastLine
+End If
+
+wb.Sheets(shData).Columns(exSelectedCol + 1).Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+
+'search all
+For iRow = 2 To maxRowNumVend
+    For jRow = 2 To maxRowNumEX
+        If Trim(wb.Sheets(shData).Cells(iRow, vendPNumCol).Value) = Trim(wb.Sheets(shExport).Cells(jRow, exPNumCol).Value) Then
+            'product numbers match, add column & check values
+            If Trim(wb.Sheets(shData).Cells(iRow, vendSelectedCol).Value) <> Trim(wb.Sheets(shExport).Cells(jRow, exSelectedCol).Value) Then
+                'no match. put old value in new column
+                wb.Sheets(shData).Cells(iRow, vendSelectedCol + 1).Value = Trim(wb.Sheets(shExport).Cells(jRow, exSelectedCol).Value)
+                iCount = iCount + 1
+            End If
+            jRow = maxRowNumEX
+        End If
+    Next jRow
+Next iRow
+
+If iCount = 0 Then
+    wb.Sheets(shData).Columns(exSelectedCol + 1).Delete
+Else
+    wb.Sheets(shData).Cells(1, exSelectedCol + 1).Value = wb.Sheets(shData).Cells(1, exSelectedCol).Value & " WAS"
+    wb.Sheets(shData).Cells(1, exSelectedCol + 1).Interior.Color = 49407
+End If
+
+
+LastLine:
+Application.ScreenUpdating = True
+Application.DisplayAlerts = True
+
+End Sub
+
