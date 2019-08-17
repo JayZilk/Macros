@@ -1,3 +1,4 @@
+Attribute VB_Name = "Z_singleChange"
 Sub singleChanges()
 'This subroutinue takes the selected cell and tests what it was in the export against what it is now. If there is a change
 'A 'WAS' column is created with the old value
@@ -28,10 +29,10 @@ For iCol = 1 To maxColNumVend
     End If
 Next iCol
 For iCol = 1 To maxColNumEX
-    If Trim(UCase(wb.Sheets(shData).Cells(1, iCol).Value)) = "PRODUCT NUMBER" Then
+    If Trim(UCase(wb.Sheets(shExport).Cells(1, iCol).Value)) = "PRODUCT NUMBER" Then
         exPNumCol = iCol
     End If
-    If Trim(UCase(wb.Sheets(shData).Cells(1, iCol).Value)) = UCase(selectedHeader) Then
+    If Trim(UCase(wb.Sheets(shExport).Cells(1, iCol).Value)) = UCase(selectedHeader) Then
         exSelectedCol = iCol
     End If
     If exPNumCol <> "" And exSelectedCol <> "" Then
@@ -57,7 +58,7 @@ If errorCheck = True Then
     GoTo LastLine
 End If
 
-wb.Sheets(shData).Columns(exSelectedCol + 1).Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+wb.Sheets(shData).Columns(vendSelectedCol + 1).Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
 
 'search all
 For iRow = 2 To maxRowNumVend
@@ -71,14 +72,22 @@ For iRow = 2 To maxRowNumVend
             End If
             jRow = maxRowNumEX
         End If
+        If iRow Mod 1000 = 0 And jRow = 2 Then
+            continue = MsgBox(iRow & " items checked. Continue?", vbYesNo)
+            If continue = vbNo Then
+                GoTo LoopJump
+            End If
+        End If
     Next jRow
 Next iRow
 
+LoopJump:
+
 If iCount = 0 Then
-    wb.Sheets(shData).Columns(exSelectedCol + 1).Delete
+    wb.Sheets(shData).Columns(vendSelectedCol + 1).Delete
 Else
-    wb.Sheets(shData).Cells(1, exSelectedCol + 1).Value = wb.Sheets(shData).Cells(1, exSelectedCol).Value & " WAS"
-    wb.Sheets(shData).Cells(1, exSelectedCol + 1).Interior.Color = 49407
+    wb.Sheets(shData).Cells(1, vendSelectedCol + 1).Value = wb.Sheets(shData).Cells(1, exSelectedCol).Value & " WAS"
+    wb.Sheets(shData).Cells(1, vendSelectedCol + 1).Interior.Color = 49407
 End If
 
 
