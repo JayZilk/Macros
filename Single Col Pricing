@@ -1,8 +1,8 @@
 Attribute VB_Name = "Z_SinglePricing"
 Sub SingleColPricing()
 '7/19/19 ----- JZ
-'using the selected column as the PRICE/SELL this subroutinue will ask for the margin and do the math that was 
-'previously done by hand for each column
+'using the selected column as the PRICE/SELL this subroutinue will ask for the margin and do the math
+'8/15/19 Updated to show formula in the cell
 
 maxRowNum = ActiveWorkbook.ActiveSheet.UsedRange.SpecialCells(xlCellTypeLastCell).Row
 
@@ -13,18 +13,26 @@ priceCol = ActiveCell.Column
 
 If Cells(ActiveCell.Row, priceCol + 1).Value = "" Then
     'column is blank.
-    GoTo lastLine
+    GoTo LastLine
 End If
 
-'for each column get the input
+'get the user input
 userInput = InputBox("Enter Quote Percentage for " & Cells(1, priceCol).Value & "(no decimals)")
 margin = (100 - CInt(userInput)) / 100
+Columns(priceCol).NumberFormat = "General"
 
 'for each row, do the math
 For Row = 2 To maxRowNum
-    Cells(Row, priceCol).Value = (Cells(Row, priceCol + 1).Value / margin)
+    'Cells(Row, priceCol).Value = (Cells(Row, priceCol + 1).Value / margin) ((OLD))
+    Cells(Row, priceCol).Formula = "=" & Cells(Row, priceCol + 1).Value & "/" & margin
 Next Row
+
+'set the two calculated columns to number format and 4 digits
+Columns(priceCol).NumberFormat = "0.0000"
+Columns(priceCol + 1).NumberFormat = "0.0000"
+
     
-lastLine:
+LastLine:
+'nothing happens down here
 End Sub
 
