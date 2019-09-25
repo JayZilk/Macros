@@ -1,0 +1,231 @@
+Attribute VB_Name = "ZZZZ_Game"
+Global width As Integer
+Global height As Integer
+Global startNum As Integer
+Global board1() As Variant
+Global board2() As Variant
+Global board3() As Variant
+Global liveCells As Integer
+Global stoploop As Boolean
+
+Sub Game()
+'I'm going to attempt to write an EXCEL version of Conway's Game Of Life. This should be interesting as a practice :)
+
+Dim genCount As Integer
+Dim seed() As Variant
+Dim cellCount As Integer
+
+width = InputBox("How many Columns?")
+height = InputBox("How many Rows?")
+startNum = InputBox("What percent of the board should be filled at the start?")
+colLetter = Module1_Examples.Number2Letter(width)
+ReDim board1(height + 1, width + 1)
+ReDim board2(height + 1, width + 1)
+ReDim board3(height + 1, width + 1)
+
+
+'-----------------------------------------------------------------------
+'SETUP
+'-----------------------------------------------------------------------
+ActiveWorkbook.ActiveSheet.Columns("A:" & colLetter).ColumnWidth = 2.14
+ActiveWorkbook.ActiveSheet.Rows("1:" & height).RowHeight = 14
+
+Range("A1:" & colLetter & height).Select
+    Selection.Borders(xlDiagonalDown).LineStyle = xlNone
+    Selection.Borders(xlDiagonalUp).LineStyle = xlNone
+    With Selection.Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlMedium
+    End With
+    With Selection.Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlMedium
+    End With
+    With Selection.Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlMedium
+    End With
+    With Selection.Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .ColorIndex = 0
+        .TintAndShade = 0
+        .Weight = xlMedium
+    End With
+    Selection.Borders(xlInsideVertical).LineStyle = xlNone
+    Selection.Borders(xlInsideHorizontal).LineStyle = xlNone
+
+'-----------------------------------------------------------------------
+'Seed Board
+'-----------------------------------------------------------------------
+'uses 2 random numbers to select the X,Y location of the starting cells and set the first array
+Dim liveCells As Long
+ReDim seed(liveCells, 2)
+liveCells = Int(((startNum + 1) * (width * height)) / 100)
+ReDim seed(liveCells, 2)
+
+For iRow = 1 To liveCells
+    seed(iRow, 1) = Int(height * Rnd()) + 1 'picks random number between 1 and board height
+    seed(iRow, 2) = Int(width * Rnd()) + 1 'picks random number between 1 and board width
+
+    board1(seed(iRow, 1), seed(iRow, 2)) = "O"
+Next iRow
+
+'-----------------------------------------------------------------------
+'RUN GAME
+'-----------------------------------------------------------------------
+'for each 'cell' in the initial array count how many living cells are around it
+'based on the number kill/grow the cell
+
+'INITIAL ROUND SETUP
+genNum = 0
+liveCells = ZZZZ_Game.populate
+Cells(height + 1, 1).Value = "Gen #: " & genNum
+Cells(height + 1, 5).Value = "Living Cells: " & liveCells
+Application.Wait (Now + TimeValue("0:00:02"))
+
+
+'ALL FOLLOWING ROUNDS (1 -> end)
+Do
+    'update round #
+    genNum = genNum + 1
+    Cells(height + 1, 1).Value = "Gen #: " & genNum
+    
+    'Copy array to Baseline(S) (1 = changes / 2 = previous / 3 = previous2)
+    If genNum > 1 Then
+        For i = 1 To height
+           For j = 1 To width
+               board3(i, j) = board2(i, j)
+           Next j
+        Next i
+    End If
+    
+    For i = 1 To height
+        For j = 1 To width
+            board2(i, j) = board1(i, j)
+        Next j
+    Next i
+    
+    'Run Game Round
+    liveCells = ZZZZ_Game.gameRound
+    Call ZZZZ_Game.populate
+    Cells(height + 1, 5).Value = "Living Cells: " & liveCells
+    Application.Wait (Now + TimeValue("0:00:01"))
+
+
+    If genNum = 50 Then
+        genNum = genNum 'stop test
+    End If
+    
+'test for 3 duplicate arrays
+    If genNum > 1 Then
+        equalTest = True
+        For i = 1 To height
+            For j = 1 To width
+                If board1(i, j) <> board2(i, j) And board1(i, j) <> board3(i, j) Then
+                    equalTest = False
+                    i = height
+                    j = width
+                End If
+            Next j
+        Next i
+        
+        If equalTest = True Then
+            GoTo LastLine
+        End If
+    End If
+    
+Loop While liveCells > 0
+
+'-----------------------------------------------------------------------
+'MISC
+'-----------------------------------------------------------------------
+LastLine:
+MsgBox ("The game has ended. It ran for " & genNum & " generations and ended with " & liveCells & " live cells.")
+
+
+End Sub
+Function countCells(r As Integer, c As Integer) As Integer
+'counts living cells around the target cell. Returns number of cells
+count = 0
+
+For iRow = (r - 1) To (r + 1)
+    For iCol = (c - 1) To (c + 1)
+        If board2(iRow, iCol) = "O" Then
+            count = count + 1
+        End If
+    Next iCol
+Next iRow
+
+If board2(r, c) = "O" Then
+    count = count - 1
+End If
+
+countCells = count
+
+End Function
+Function gameRound() As Integer
+
+Dim rIndex As Integer
+Dim cIndex As Integer
+
+live = 0
+
+For rIndex = 1 To height 'board Rows
+    For cIndex = 1 To width 'board columns
+        cellCount = 0
+        cellCount = ZZZZ_Game.countCells(rIndex, cIndex)
+        
+        If cellCount < 2 And board2(rIndex, cIndex) = "O" Then
+        'die (underpopulation)
+            board1(rIndex, cIndex) = "X"
+        
+        ElseIf cellCount > 1 And cellCount < 4 And board2(rIndex, cIndex) = "O" Then
+        'live next round
+            board1(rIndex, cIndex) = "O"
+            live = live + 1
+        
+        ElseIf cellCount = 3 Then
+        'grow (birth)
+            board1(rIndex, cIndex) = "O"
+            live = live + 1
+        
+        ElseIf cellCount > 3 And board2(rIndex, cIndex) = "O" Then
+        'die (overpopulation)
+            board1(rIndex, cIndex) = "X"
+        
+        ElseIf board2(rIndex, cIndex) = "X" Then
+        'clear dead cells
+            board1(rIndex, cIndex) = ""
+        Else
+        'extra catch all case
+        End If
+    Next cIndex
+Next rIndex
+
+gameRound = live
+
+End Function
+Function populate() As Integer
+'takes the given array and populates the visable gameboard
+Dim livingCellCount As Integer
+
+For iRow = 1 To height
+    For iCol = 1 To width
+        Cells(iRow, iCol).Value = board1(iRow, iCol)
+        
+        If board1(iRow, iCol) = "O" Then
+            livingCellCount = livingCellCount + 1
+        End If
+    Next iCol
+Next iRow
+
+'update the count
+populate = livingCellCount
+
+End Function
